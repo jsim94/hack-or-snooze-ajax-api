@@ -9,7 +9,7 @@ class Story {
   /** Make instance of Story from data object about story:
    *   - {title, author, url, username, storyId, createdAt}
    */
-  constructor({ storyId, title, author, url, username, createdAt }) {
+  constructor({ storyId, title, author, url, username, createdAt, isFav }) {
     this.storyId = storyId;
     this.title = title;
     this.author = author;
@@ -47,11 +47,10 @@ class StoryList {
     //  instance method?
 
     // query the /stories endpoint (no auth required)
-    const response = await axios.get(`${BASE_URL}/stories`);
-    // const response = await axios({
-    //   url: `${BASE_URL}/stories`,
-    //   method: "GET",
-    // });
+    const response = await axios({
+      url: `${BASE_URL}/stories`,
+      method: "GET",
+    });
 
     // turn plain old story objects from API into instances of Story class
     const stories = response.data.stories.map((story) => new Story(story));
@@ -67,12 +66,20 @@ class StoryList {
    * Returns the new Story instance
    */
   async addStory(user, story) {
-    const res = await axios.post(`${BASE_URL}/stories`, { token: user, story });
+    console.log(user.loginToken);
+    const res = await axios.post(`${BASE_URL}/stories`, { token: user.loginToken, story });
     const newStory = new Story(res.data.story);
 
     this.stories.unshift(newStory);
-    console.log("New Story: ", newStory);
-    console.log("Storylist: ", this.stories);
+    user.ownStories.unshift(newStory);
+
+    return newStory;
+  }
+
+  async deleteStory(user, storyId) {
+    const story = user.ownStories.find((val) => val.storyId === storyId);
+    const res = await axios.delete(`${BASE_URL}/stories/${story.storyId}`, { params: { token: user.loginToken } });
+    user.removeOwnStory(res.data.story.storyId);
   }
 }
 
@@ -91,11 +98,28 @@ class User {
     this.createdAt = createdAt;
 
     // instantiate Story instances for the user's favorites and ownStories
-    this.favorites = favorites.map((s) => new Story(s));
+    this.favorites = favorites.map((s) => new Story(s, true));
     this.ownStories = ownStories.map((s) => new Story(s));
 
     // store the login token on the user so it's easy to find for API calls.
     this.loginToken = token;
+  }
+
+  /** Update user information with passed data or with an http request */
+  async updateUser(arg) {
+    let data;
+
+    // if no data passed, get data from server
+    if (!arg) {
+      data = await axios.get(`${BASE_URL}/users/${this.username}`, { params: { token: this.loginToken } });
+    } else {
+      data = arg;
+    }
+    const newData = data.data.user;
+
+    this.name = newData.name;
+    this.favorites = mapStories(newData.favorites);
+    this.ownStories = mapStories(newData.stories);
   }
 
   /** Register new user in API, make User instance & return it.
@@ -178,5 +202,45 @@ class User {
       console.error("loginViaStoredCredentials failed", err);
       return null;
     }
+  }
+
+  mapStories(arg) {
+    return arg.map((s) => new Story(s));
+  }
+
+  async toggleFavorite(storyId) {
+    let res;
+    console.log(storyId);
+    const storyIndex = currentUser.favorites.findIndex((val) => val.storyId === storyId);
+
+    if (storyIndex > -1) {
+      res = await axios.delete(`${BASE_URL}/users/${currentUser.username}/favorites/${storyId}`, { params: { token: currentUser.loginToken } });
+    } else {
+      res = await axios.post(`${BASE_URL}/users/${currentUser.username}/favorites/${storyId}`, {
+        token: currentUser.loginToken,
+      });
+    }
+    this.favorites = this.mapStories(res.data.user.favorites);
+  }
+
+  removeOwnStory(id) {
+    const storyIndex = this.ownStories.findIndex((val) => val.storyId === id);
+    console.log(storyIndex);
+    this.ownStories.pop(storyIndex, 1);
+  }
+
+  // API keeps returning 401 despite sending exactly what is being requested if it returns 400
+  async updateProfile(name) {
+    console.log(this.loginToken);
+    const res = await axios({
+      url: `${BASE_URL}/users/${this.username}`,
+      method: "PATCH",
+      params: {
+        user: {
+          username: name,
+          token: this.loginToken,
+        },
+      },
+    });
   }
 }

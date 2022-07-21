@@ -8,7 +8,7 @@
 function navAllStories(evt) {
   console.debug("navAllStories", evt);
   hidePageComponents();
-  putStoriesOnPage();
+  putStoriesOnPage(storyList.stories);
 }
 $body.on("click", "#nav-all", navAllStories);
 
@@ -30,9 +30,38 @@ function updateNavOnLogin() {
   $navUserProfile.text(`${currentUser.username}`).show();
 }
 
-function navSubmitClick(e) {
-  console.debug("navSubmitClick", e);
-  hidePageComponents();
-  $submitForm.show();
+function navSubmitClick(evt) {
+  console.debug("navSubmitClick", evt);
+
+  if ($($submitForm).is(":hidden")) {
+    hidePageComponents();
+    $allStoriesList.show();
+    console.log($allStoriesList);
+    $submitForm.show();
+  } else {
+    navAllStories(evt);
+  }
 }
 $navSubmit.on("click", navSubmitClick);
+
+function navFavorites(evt) {
+  console.debug("navFavoritesClick", evt);
+  hidePageComponents();
+  putStoriesOnPage(currentUser.favorites);
+}
+$navFavorites.on("click", navFavorites);
+
+function navMyStories(evt) {
+  console.debug("navMyStoriesClick", evt);
+  hidePageComponents();
+  putStoriesOnPage(currentUser.ownStories);
+}
+$navMyStories.on("click", navMyStories);
+
+function navUserProfile(evt) {
+  console.debug("navUserProfileClick", evt);
+  hidePageComponents();
+  $userProfileForm.show();
+}
+// commented out because User.updateProfile is non functional
+// $navUserProfile.on("click", navUserProfile);

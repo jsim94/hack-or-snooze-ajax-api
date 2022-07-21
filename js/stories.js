@@ -5,10 +5,11 @@ let storyList;
 
 /** Get and show stories when site first loads. */
 async function getAndShowStoriesOnStart() {
+  console.debug("getAndShowStoriesOnStart");
   storyList = await StoryList.getStories();
   $storiesLoadingMsg.remove();
 
-  putStoriesOnPage();
+  putStoriesOnPage(storyList.stories);
 }
 
 /**
@@ -20,34 +21,43 @@ async function getAndShowStoriesOnStart() {
 function generateStoryMarkup(story) {
   // console.debug("generateStoryMarkup", story);
 
+  const _includes = (test, story) => {
+    return test.some((val) => val.storyId === story.storyId);
+  };
+  const isFav = _includes(currentUser.favorites, story);
+  const isTrash = _includes(currentUser.ownStories, story);
+
   const hostName = story.getHostName();
+
   return $(`
       <li id="${story.storyId}">
-      <span class='star'><i class="far fa-star"></i></span>
-        <a href="${story.url}" target="a_blank" class="story-link">
+          <span class="star"><i class="far fa-star ${isFav ? "fas" : ""}"></i></span>
+          <a href="${story.url}" target="a_blank" class="story-link">
           ${story.title}
-        </a>
-        <small class="story-hostname">(${hostName})</small>
-        <small class="story-author">by ${story.author}</small>
-        <small class="story-user">posted by ${story.username}</small>
+          </a>
+          <small class="story-hostname">(${hostName})</small>
+          <small class="story-author">by ${story.author}</small>
+          ${isTrash ? '<span class="trash"><i class="fas fa-trash-alt"></i></span>' : ""}
+          <small class="story-user">posted by ${story.username}</small>
       </li>
     `);
 }
 
 /** Gets list of stories from server, generates their HTML, and puts on page. */
-function putStoriesOnPage() {
+function putStoriesOnPage(stories) {
   console.debug("putStoriesOnPage");
 
   $allStoriesList.empty();
 
   // loop through all of our stories and generate HTML for them
-  for (let story of storyList.stories) {
+  for (let story of stories) {
     const $story = generateStoryMarkup(story);
     $allStoriesList.append($story);
   }
 
-  // adding favorite click handlers after elements are added
+  // adding click handlers for fav and trash
   $(".star").on("click", favoriteHandler);
+  $(".trash").on("click", deleteHandler);
 
   $allStoriesList.show();
 }
@@ -60,8 +70,22 @@ async function submitStory(evt) {
     author: $("#submit-author").val(),
     url: $("#submit-url").val(),
   };
-  await storyList.addStory(currentUser.loginToken, newStory);
+  await storyList.addStory(currentUser, newStory);
   hidePageComponents();
-  putStoriesOnPage();
+  putStoriesOnPage(storyList.stories);
 }
 $submitForm.on("submit", submitStory);
+
+async function favoriteHandler(evt) {
+  const storyId = evt.currentTarget.parentElement.id;
+  await currentUser.toggleFavorite(storyId);
+
+  // update DOM
+  $(`#${storyId} .fa-star`).toggleClass("fas");
+}
+
+async function deleteHandler(evt) {
+  const storyId = evt.currentTarget.parentElement.id;
+  await storyList.deleteStory(currentUser, storyId);
+  evt.currentTarget.parentElement.remove();
+}

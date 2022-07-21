@@ -4,6 +4,7 @@
 //  -password testing
 
 // So we don't have to keep re-finding things on page, find DOM elements once:
+
 const $body = $("body");
 
 const $storiesLoadingMsg = $("#stories-loading-msg");
@@ -12,7 +13,10 @@ const $allStoriesList = $("#all-stories-list");
 const $loginForm = $("#login-form");
 const $signupForm = $("#signup-form");
 const $submitForm = $("#submit-form");
+const $userProfileForm = $("#user-form");
 
+const $navMyStories = $("#nav-my-stories");
+const $navFavorites = $("#nav-favorites");
 const $navSubmit = $("#nav-submit");
 const $navLogin = $("#nav-login");
 const $navUserProfile = $("#nav-user-profile");
@@ -39,47 +43,5 @@ async function start() {
   if (currentUser) updateUIOnUserLogin();
 }
 
-// Once the DOM is entirely loaded, begin the app
-console.warn(
-  "HEY STUDENT: This program sends many debug messages to" +
-    " the console. If you don't see the message 'start' below this, you're not" +
-    " seeing those helpful debug messages. In your browser console, click on" +
-    " menu 'Default Levels' and add Verbose"
-);
+// ~~~~~~~~~~~~~STARTPOINT~~~~~~~~~~~
 $(start);
-
-// ~~~~~~~~ TESTING CHANGES
-
-// function to remove Test storys
-async function delete1(...args) {
-  if (args.length === 0) {
-    const ids = storyList.stories.filter((val) => {
-      return val.title.indexOf("Test") > -1;
-    });
-    console.log(ids);
-
-    for (let id of ids) {
-      await axios.delete(`https://hack-or-snooze-v3.herokuapp.com/stories/${id.storyId}`, { params: { token: currentUser.loginToken } });
-    }
-    alert("tests deleted. reloading now");
-    location.reload();
-  } else {
-    for (let id of args) {
-      await axios.delete(`https://hack-or-snooze-v3.herokuapp.com/stories/${id}`, { params: { token: currentUser.loginToken } });
-    }
-  }
-}
-
-$("#submit-title").val("Test1");
-$("#submit-author").val("Me");
-$("#submit-url").val("https://www.firefox.com");
-
-/*
-autoclick submit
-*/
-// $(document).ready(function () {
-//   setTimeout(function () {
-//     $("#nav-submit").trigger("click");
-//     console.log("click");
-//   }, 100);
-// });

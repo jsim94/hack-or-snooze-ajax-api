@@ -4,7 +4,7 @@
 let currentUser;
 
 /******************************************************************************
- * Handle user login/signup/logout
+ * Handle user clicks
  */
 
 /** Handle login form submission. If login ok, sets up the user instance */
@@ -58,6 +58,14 @@ function logout(evt) {
 }
 $navLogOut.on("click", logout);
 
+async function updateUser(evt) {
+  console.debug("update", evt);
+  evt.preventDefault();
+  await currentUser.updateProfile($("#change-username"));
+  location.reload();
+}
+$userProfileForm.on("submit", updateUser);
+
 /******************************************************************************
  * Storing/recalling previously-logged-in-user with localStorage
  */
@@ -104,12 +112,4 @@ function updateUIOnUserLogin() {
   $allStoriesList.show();
 
   updateNavOnLogin();
-}
-
-async function favoriteHandler(evt) {
-  const storyId = evt.currentTarget.parentElement.id;
-  console.log(currentUser.loginToken);
-  await axios.post(`https://hack-or-snooze-v3.herokuapp.com/users/${currentUser.username}/favorites/${storyId}`, {
-    token: currentUser.loginToken,
-  });
 }
